@@ -23,14 +23,14 @@
   --font:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
-#app{height:100vh;display:flex;flex-direction:column;overflow:hidden;max-width:430px;margin:0 auto;position:relative}
+#app{height:100vh;display:flex;flex-direction:column;overflow:hidden;max-width:430px;margin:0 auto;position:relative;isolation:isolate}
 
 /* SCREENS */
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden}
 .screen.active{display:flex}
 
 /* SCROLLABLE CONTENT */
-.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 16px 24px;-webkit-overflow-scrolling:touch}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 16px 100px;-webkit-overflow-scrolling:touch}
 .scroll-area::-webkit-scrollbar{display:none}
 
 /* TOP BAR */
@@ -39,7 +39,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .topbar-sub{font-size:13px;color:var(--text2);font-family:var(--mono)}
 
 /* BOTTOM NAV */
-.bottom-nav{display:flex;background:var(--bg1);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav{display:flex;background:var(--bg1);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;cursor:pointer;border:none;background:none;color:var(--text3);font-family:var(--font);font-size:10px;font-weight:500;letter-spacing:0.3px;transition:color 0.15s}
 .nav-item.active{color:var(--accent)}
 .nav-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
@@ -274,9 +274,29 @@ canvas.prog-chart{width:100%;height:80px}
           <div class="settings-sub">Used for progress tracking</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <input type="number" class="time-input" id="bodyweightInput" placeholder="64" style="width:70px" onchange="saveBodyweight()">
-          <span style="font-size:12px;color:var(--text3)">kg</span>
+          <input type="number" class="time-input" id="bodyweightInput" placeholder="145" style="width:70px" onchange="saveBodyweight()">
+          <span style="font-size:12px;color:var(--text3)" id="bwUnitLabel">lbs</span>
         </div>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div class="settings-label">Weight unit</div>
+          <div class="settings-sub">Used in logging and progress</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="unitLbs" onclick="setUnit('lbs')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--accent);color:#000;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">lbs</button>
+          <button id="unitKg" onclick="setUnit('kg')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">kg</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="section-hdr"><span class="section-title">Units</span></div>
+      <div class="settings-item">
+        <div><div class="settings-label">Weight unit</div><div class="settings-sub">Used across the whole app</div></div>
+        <select class="time-input" id="unitSelect" onchange="saveUnit()" style="width:80px;font-size:13px">
+          <option value="lbs" selected>lbs</option>
+          <option value="kg">kg</option>
+        </select>
       </div>
     </div>
     <div class="settings-section">
@@ -296,13 +316,21 @@ canvas.prog-chart{width:100%;height:80px}
     </div>
     <div class="settings-section">
       <div class="section-hdr"><span class="section-title">Data</span></div>
+      <div class="settings-item">
+        <div><div class="settings-label">Weight unit</div><div class="settings-sub">Used everywhere in the app</div></div>
+        <div style="display:flex;gap:6px">
+          <button id="unitLbs" onclick="setUnit('lbs')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">lbs</button>
+          <button id="unitKg" onclick="setUnit('kg')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">kg</button>
+        </div>
+      </div>
+      <button class="danger-btn" onclick="exportData()" style="border-color:#4dff91;color:#4dff91;margin-bottom:8px">Export backup (.json)</button>
+      <button class="danger-btn" onclick="importData()" style="border-color:#4d9fff;color:#4d9fff;margin-bottom:8px">Import backup</button>
       <button class="danger-btn" onclick="confirmReset()">Reset all data</button>
     </div>
     <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:11px;font-family:var(--mono)">GRIND v1.0 — built for Javindu</div>
   </div>
 </div>
 
-<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-item active" onclick="goTo('today')" id="nav-today">
     <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
@@ -326,6 +354,22 @@ canvas.prog-chart{width:100%;height:80px}
   </button>
 </nav>
 
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal" onclick="closeConfirmModal(event)">
+  <div class="edit-modal" style="text-align:center">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px">Reset all data?</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5">This will delete all your workout logs, progress, and settings. Cannot be undone.</div>
+    <button class="modal-save-btn" style="background:var(--red);margin-bottom:8px" onclick="executeReset()">Yes, reset everything</button>
+    <button class="cancel-btn" onclick="closeConfirmModal()">Cancel</button>
+  </div>
+
+
+</div>
+
+<!-- BOTTOM NAV -->
+
+
 <!-- LOG MODAL -->
 <div class="modal-overlay" id="logModal" onclick="closeLogModal(event)">
   <div class="modal" id="logModalInner">
@@ -335,7 +379,7 @@ canvas.prog-chart{width:100%;height:80px}
     <div class="prev-best" id="prevBest" style="display:none"></div>
     <div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:10px;margin-bottom:6px;padding:0 2px">
       <div style="min-width:28px"></div>
-      <div class="set-label">WEIGHT (kg)</div>
+      <div class="set-label" id="weightColLabel">WEIGHT</div>
       <div class="set-label">REPS</div>
       <div style="width:32px"></div>
     </div>
@@ -358,6 +402,26 @@ canvas.prog-chart{width:100%;height:80px}
 </div>
 
 <script>
+function load(k,def){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):def}catch(e){return def}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+function unitLabel(){ return settings.unit||'lbs'; }
+
+function toDisplay(raw){
+  const v = parseFloat(raw)||0;
+  if(unitLabel()==='lbs') return Math.round(v*2.20462*10)/10;
+  return v;
+}
+function fromDisplay(val){
+  const v = parseFloat(val)||0;
+  if(unitLabel()==='lbs') return Math.round(v/2.20462*100)/100;
+  return v;
+}
+function updateWeightColLabel(){
+  const el = document.getElementById('weightColLabel');
+  if(el) el.textContent = 'WEIGHT ('+unitLabel()+')';
+}
+
 const DAYS = [
   {
     key:'push', name:'Push Day', muscles:'Chest · Shoulders · Triceps', color:'#a78bfa',
@@ -429,13 +493,28 @@ const DAYS = [
   }
 ];
 
-function load(k,def){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):def}catch(e){return def}}
-function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 let routine = load('routine', DAYS);
 let workoutLogs = load('workoutLogs', []);
-let settings = load('settings', {reminder:true, reminderTime:'08:00', startDay:1, bodyweight:64});
+let settings = load('settings', {reminder:true, reminderTime:'08:00', startDay:1, bodyweight:145, unit:'lbs'});
 let currentLogExIdx = null;
+
+
+
+
 let currentLogDayIdx = null;
 let activeWorkout = load('activeWorkout', null);
 let editingExIdx = null;
@@ -443,12 +522,16 @@ let editingDayIdx = null;
 let openDayIdx = null;
 
 function getToday(){return new Date()}
+
+
+
+
 function getDayOfWeek(){return getToday().getDay()}
 function getTodayRoutineIdx(){
-  const sd = settings.startDay||1;
+  const sd = settings.startDay !== undefined ? settings.startDay : 1;
   const dow = getDayOfWeek();
-  let idx = (dow - sd + 7) % 7;
-  return idx % 7;
+  const idx = (dow - sd + 7) % 7;
+  return idx % routine.length;
 }
 function getTodayStr(){
   const d=getToday();
@@ -512,12 +595,14 @@ function renderToday(){
   const DOW_LABELS = ['S','M','T','W','T','F','S'];
   const todayDow = getDayOfWeek();
   const sd = settings.startDay||1;
+  const todayRoutineIdx = getTodayRoutineIdx();
   for(let i=0;i<7;i++){
     const dow = (sd+i)%7;
-    const routineDay = routine[i];
+    const routineDay = routine[i % routine.length];
     const isToday = dow === todayDow;
-    const offset = (dow - todayDow + 7) % 7;
-    const d = new Date(); d.setDate(d.getDate() - (7 - offset) % 7 + (dow < todayDow ? 0 : -(7 - (dow-todayDow))));
+    const daysFromToday = (dow - todayDow + 7) % 7;
+    const d = new Date();
+    d.setDate(d.getDate() + (daysFromToday === 0 ? 0 : daysFromToday <= 3 ? daysFromToday : daysFromToday - 7));
     const ds = d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
     const hasDone = workoutLogs.some(l=>l.date===ds);
     const isRest = routineDay && routineDay.isRest;
@@ -572,7 +657,7 @@ function renderToday(){
         <div class="ex-row-sets">${ex.sets}</div>
       </div>
       <div class="ex-row-right">
-        ${lastWeight?`<span class="ex-weight-badge">${lastWeight}kg</span>`:''}
+        ${lastWeight?`<span class="ex-weight-badge">${toDisplay(lastWeight)}${unitLabel()}</span>`:''}
         <div class="ex-check ${done?'done':''}">
           ${done?`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`:''}
         </div>
@@ -601,21 +686,23 @@ function openLogModal(dayIdx, exIdx){
   logExIdx2 = exIdx;
   const ex = routine[dayIdx].exercises[exIdx];
   document.getElementById('logModalTitle').textContent = ex.name;
-  document.getElementById('logModalSub').textContent = ex.sets;
+
+  const match = ex.sets.match(/(\d+)\s*[x×]\s*([\d]+)/);
+  const numSets = match ? parseInt(match[1]) : 3;
+  const targetReps = match ? match[2] : '12';
 
   const lastLog = getLastLog(ex.name);
   const prevEl = document.getElementById('prevBest');
+
   if(lastLog){
-    const best = lastLog.sets.reduce((a,b)=>parseFloat(b.weight)>parseFloat(a.weight)?b:a, lastLog.sets[0]);
-    prevEl.textContent = `Last session: ${lastLog.sets.map(s=>`${s.weight}kg×${s.reps}`).join('  ')}`;
-    prevEl.style.display='block';
-    logSets = lastLog.sets.map(s=>({weight:s.weight,reps:s.reps,done:false}));
+    prevEl.textContent = 'Last: ' + lastLog.sets.map(s=>toDisplay(s.weight)+unitLabel()+' x '+s.reps).join('  ·  ');
+    prevEl.style.display = 'block';
+    document.getElementById('logModalSub').textContent = ex.sets + ' — pre-filled from last session';
+    logSets = lastLog.sets.map(s=>({weight:s.weight, reps:s.reps, done:false}));
   } else {
-    prevEl.style.display='none';
-    const match = ex.sets.match(/(\d+)\s*[x×]\s*(\d+)/);
-    const numSets = match?parseInt(match[1]):3;
-    const reps = match?match[2]:'12';
-    logSets = Array.from({length:numSets},()=>({weight:'',reps:reps,done:false}));
+    prevEl.style.display = 'none';
+    document.getElementById('logModalSub').textContent = ex.sets + ' — first time, enter your weight once';
+    logSets = Array.from({length:numSets}, ()=>({weight:'', reps:targetReps, done:false}));
   }
 
   renderSets();
@@ -623,20 +710,23 @@ function openLogModal(dayIdx, exIdx){
 }
 
 function renderSets(){
+  updateWeightColLabel();
+  const ul = unitLabel();
   let html='';
   logSets.forEach((s,i)=>{
-    html+=`<div class="set-row">
-      <span class="set-num">${i+1}</span>
-      <input type="number" class="set-input" placeholder="kg" value="${s.weight}" onchange="logSets[${i}].weight=this.value" oninput="logSets[${i}].weight=this.value" step="0.5">
-      <input type="number" class="set-input" placeholder="reps" value="${s.reps}" onchange="logSets[${i}].reps=this.value" oninput="logSets[${i}].reps=this.value">
-      <button class="set-done-btn ${s.done?'done':''}" onclick="toggleSetDone(${i})">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-    </div>`;
+    const wval = s.weight ? toDisplay(s.weight) : '';
+    const rval = s.reps || '';
+    const done = s.done ? 'done' : '';
+    html += '<div class="set-row">';
+    html += '<span class="set-num">'+(i+1)+'</span>';
+    html += '<input type="number" class="set-input" placeholder="'+ul+'" value="'+wval+'" step="0.5" oninput="logSets['+i+'].weight=this.value" onchange="logSets['+i+'].weight=this.value">';
+    html += '<input type="number" class="set-input" placeholder="reps" value="'+rval+'" oninput="logSets['+i+'].reps=this.value" onchange="logSets['+i+'].reps=this.value">';
+    html += '<button class="set-done-btn '+done+'" onclick="toggleSetDone('+i+')">';
+    html += '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+    html += '</button></div>';
   });
   document.getElementById('setsContainer').innerHTML=html;
 }
-
 function toggleSetDone(i){
   logSets[i].done=!logSets[i].done;
   renderSets();
@@ -653,7 +743,7 @@ function saveExercise(){
     date: getTodayStr(),
     dayKey: routine[logDayIdx2].key,
     exercise: ex.name,
-    sets: logSets.map(s=>({weight:s.weight||'0',reps:s.reps||'0',done:s.done}))
+    sets: logSets.map(s=>({weight: String(fromDisplay(parseFloat(s.weight)||0)), reps:s.reps||'0',done:s.done}))
   };
   workoutLogs = workoutLogs.filter(l=>!(l.date===entry.date&&l.exercise===entry.exercise));
   workoutLogs.push(entry);
@@ -692,7 +782,7 @@ function renderHistory(){
       <div class="workout-exes">`;
     logs.forEach(l=>{
       const best = l.sets.reduce((a,b)=>parseFloat(b.weight)>parseFloat(a.weight)?b:a,l.sets[0]);
-      html+=`<div class="workout-ex-line"><span>${l.exercise}</span> — ${l.sets.map(s=>`${s.weight}kg×${s.reps}`).join(', ')}</div>`;
+      html+=`<div class="workout-ex-line"><span>${l.exercise}</span> — ${l.sets.map(s=>`${toDisplay(s.weight)}${unitLabel()}×${s.reps}`).join(', ')}</div>`;
     });
     html+='</div></div>';
   });
@@ -709,27 +799,28 @@ function renderProgress(){
   exNames.forEach(name=>{
     const logs = workoutLogs.filter(l=>l.exercise===name).sort((a,b)=>a.date.localeCompare(b.date));
     if(logs.length<1) return;
-    const weights = logs.map(l=>Math.max(...l.sets.map(s=>parseFloat(s.weight)||0)));
+    const weights = logs.map(l=>toDisplay(Math.max(...l.sets.map(s=>parseFloat(s.weight)||0))));
     const maxW = Math.max(...weights);
     const minW = Math.min(...weights);
     const firstW = weights[0];
     const lastW = weights[weights.length-1];
     const diff = lastW - firstW;
+    const dispLastW = toDisplay(lastW); const dispMaxW = toDisplay(maxW); const dispDiff = toDisplay(Math.abs(diff));
     const canvasId = 'chart_'+name.replace(/[^a-z0-9]/gi,'_');
     html+=`<div class="prog-card">
       <div class="prog-ex-name">${name}</div>
       <div class="chart-wrap"><canvas id="${canvasId}" class="prog-chart" height="80"></canvas></div>
       <div class="prog-stats">
-        <div class="prog-stat"><div class="prog-stat-val">${lastW}kg</div><div class="prog-stat-lbl">Current</div></div>
-        <div class="prog-stat"><div class="prog-stat-val">${maxW}kg</div><div class="prog-stat-lbl">Best</div></div>
-        <div class="prog-stat"><div class="prog-stat-val" style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${diff.toFixed(1)}kg</div><div class="prog-stat-lbl">Change</div></div>
+        <div class="prog-stat"><div class="prog-stat-val">${lastW}${unitLabel()}</div><div class="prog-stat-lbl">Current</div></div>
+        <div class="prog-stat"><div class="prog-stat-val">${maxW}${unitLabel()}</div><div class="prog-stat-lbl">Best</div></div>
+        <div class="prog-stat"><div class="prog-stat-val" style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${diff.toFixed(1)}${unitLabel()}</div><div class="prog-stat-lbl">Change</div></div>
       </div>
     </div>`;
   });
   document.getElementById('progressContent').innerHTML=html;
   exNames.forEach(name=>{
     const logs = workoutLogs.filter(l=>l.exercise===name).sort((a,b)=>a.date.localeCompare(b.date));
-    const weights = logs.map(l=>Math.max(...l.sets.map(s=>parseFloat(s.weight)||0)));
+    const weights = logs.map(l=>toDisplay(Math.max(...l.sets.map(s=>parseFloat(s.weight)||0))));
     const canvasId = 'chart_'+name.replace(/[^a-z0-9]/gi,'_');
     const canvas = document.getElementById(canvasId);
     if(!canvas||weights.length<2) return;
@@ -857,14 +948,51 @@ function saveReminderTime(){
 }
 
 function saveBodyweight(){
-  settings.bodyweight=parseFloat(document.getElementById('bodyweightInput').value)||64;
-  save('settings',settings);
+  settings.bodyweight = parseFloat(document.getElementById('bodyweightInput').value) || 145;
+  save('settings', settings);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setUnit(u){
+  settings.unit = u;
+  save('settings', settings);
+  const lbl = document.getElementById('bwUnitLabel');
+  if(lbl) lbl.textContent = u;
+  const sel = document.getElementById('unitSelect');
+  if(sel) sel.value = u;
+  updateWeightColLabel();
+  renderToday();
+}
+function saveUnit(){
+  settings.weightUnit = document.getElementById('unitSelect').value;
+  save('settings', settings);
+  const bwLabel = document.getElementById('bwUnitLabel');
+  if(bwLabel) bwLabel.textContent = settings.weightUnit;
+  renderToday();
 }
 
 function saveStartDay(){
-  settings.startDay=parseInt(document.getElementById('startDaySelect').value);
-  save('settings',settings);
+  settings.startDay = parseInt(document.getElementById('startDaySelect').value);
+  save('settings', settings);
   renderToday();
+  const ridx = getTodayRoutineIdx();
+  const day = routine[ridx];
+  showInAppNotif('Routine updated', 'Today is now ' + day.name, day.color);
 }
 
 function requestNotifPermission(){
@@ -902,11 +1030,63 @@ function checkDailyNotif(){
   }
 }
 
+
+
+function exportData(){
+  const data={version:1,exportedAt:new Date().toISOString(),workoutLogs,routine,settings};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='grind-backup-'+getTodayStr()+'.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showInAppNotif('Backup exported','File saved to your downloads','#4dff91');
+}
+
+function importData(){
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.workoutLogs||!data.routine){alert('Invalid backup file.');return;}
+        if(!confirm('Import this backup? Current data will be replaced.')) return;
+        workoutLogs=data.workoutLogs; routine=data.routine;
+        if(data.settings) settings=data.settings;
+        save('workoutLogs',workoutLogs); save('routine',routine); save('settings',settings);
+        initSettings(); renderToday();
+        showInAppNotif('Imported',''+workoutLogs.length+' sessions restored','#4dff91');
+      }catch(err){alert('Could not read file. Make sure it is a valid GRIND backup.');}
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input); input.click(); document.body.removeChild(input);
+}
+
 function confirmReset(){
-  if(confirm('Reset ALL data? This cannot be undone.')){
-    localStorage.clear();
-    location.reload();
+  document.getElementById('confirmModal').classList.add('open');
+}
+function executeReset(){
+  const keys = [];
+  for(let i = 0; i < localStorage.length; i++){
+    keys.push(localStorage.key(i));
   }
+  keys.forEach(k => localStorage.removeItem(k));
+  workoutLogs = [];
+  routine = JSON.parse(JSON.stringify(DAYS));
+  settings = {reminder:true, reminderTime:'08:00', startDay:1, bodyweight:145, unit:'lbs'};
+  initSettings();
+  renderToday();
+  renderHistory();
+  document.getElementById('confirmModal').classList.remove('open');
+  showInAppNotif('Reset complete', 'All data cleared', '#ff4d4d');
+}
+function closeConfirmModal(e){
+  if(e && e.target!==document.getElementById('confirmModal')) return;
+  document.getElementById('confirmModal').classList.remove('open');
 }
 
 function goTo(screen){
@@ -922,12 +1102,71 @@ function goTo(screen){
 function initSettings(){
   document.getElementById('reminderToggle').className='toggle'+(settings.reminder?' on':'');
   document.getElementById('reminderTime').value=settings.reminderTime||'08:00';
-  document.getElementById('bodyweightInput').value=settings.bodyweight||64;
+  document.getElementById('bodyweightInput').value=settings.bodyweight||145;
   document.getElementById('startDaySelect').value=settings.startDay||1;
+  document.getElementById('unitSelect').value=settings.unit||'lbs';
+  const lbl=document.getElementById('bwUnitLabel');
+  if(lbl) lbl.textContent=settings.unit||'lbs';
+}
+
+function injectTestData(){
+  if(load('testDataInjected', false)) return;
+  const today = new Date();
+  function ds(daysAgo){
+    const d = new Date(today);
+    d.setDate(d.getDate() - daysAgo);
+    return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
+  }
+  const testLogs = [
+    {date:ds(13),dayKey:'push',exercise:'Incline Bench Press (Barbell)',sets:[{weight:'0.91',reps:'10'},{weight:'0.91',reps:'10'},{weight:'0.91',reps:'9'}]},
+    {date:ds(13),dayKey:'push',exercise:'ISO Chest Press Machine',sets:[{weight:'0.68',reps:'12'},{weight:'0.68',reps:'12'},{weight:'0.68',reps:'11'}]},
+    {date:ds(13),dayKey:'push',exercise:'Dumbbell Lateral Raises',sets:[{weight:'0.45',reps:'15'},{weight:'0.45',reps:'15'},{weight:'0.45',reps:'14'},{weight:'0.45',reps:'13'}]},
+    {date:ds(13),dayKey:'push',exercise:'Tricep Rope Pushdown (Cable)',sets:[{weight:'0.59',reps:'12'},{weight:'0.59',reps:'12'},{weight:'0.59',reps:'11'}]},
+    {date:ds(12),dayKey:'pull',exercise:'Pull-Ups',sets:[{weight:'0',reps:'8'},{weight:'0',reps:'7'},{weight:'0',reps:'6'}]},
+    {date:ds(12),dayKey:'pull',exercise:'Lat Pulldown (Cable)',sets:[{weight:'0.77',reps:'12'},{weight:'0.77',reps:'12'},{weight:'0.77',reps:'10'}]},
+    {date:ds(12),dayKey:'pull',exercise:'Barbell Bicep Curl',sets:[{weight:'0.59',reps:'10'},{weight:'0.59',reps:'10'},{weight:'0.59',reps:'9'}]},
+    {date:ds(12),dayKey:'pull',exercise:'Incline Dumbbell Curl',sets:[{weight:'0.36',reps:'12'},{weight:'0.36',reps:'11'},{weight:'0.36',reps:'11'}]},
+    {date:ds(11),dayKey:'legs',exercise:'Pendulum Squat Machine',sets:[{weight:'1.13',reps:'10'},{weight:'1.13',reps:'10'},{weight:'1.13',reps:'9'},{weight:'1.13',reps:'8'}]},
+    {date:ds(11),dayKey:'legs',exercise:'Leg Extension Machine',sets:[{weight:'0.91',reps:'15'},{weight:'0.91',reps:'15'},{weight:'0.91',reps:'14'}]},
+    {date:ds(11),dayKey:'legs',exercise:'Romanian Deadlift (Barbell)',sets:[{weight:'1.36',reps:'10'},{weight:'1.36',reps:'10'},{weight:'1.36',reps:'9'}]},
+    {date:ds(11),dayKey:'legs',exercise:'Seated Leg Curl Machine',sets:[{weight:'0.77',reps:'15'},{weight:'0.77',reps:'15'},{weight:'0.77',reps:'13'}]},
+    {date:ds(9),dayKey:'upper',exercise:'Flat Bench Press (Barbell)',sets:[{weight:'1.13',reps:'7'},{weight:'1.13',reps:'7'},{weight:'1.13',reps:'6'},{weight:'1.13',reps:'6'}]},
+    {date:ds(9),dayKey:'upper',exercise:'Weighted Pull-Ups / Lat Pulldown',sets:[{weight:'1.13',reps:'7'},{weight:'1.13',reps:'7'},{weight:'1.13',reps:'6'},{weight:'1.13',reps:'6'}]},
+    {date:ds(9),dayKey:'upper',exercise:'Barbell Overhead Press',sets:[{weight:'0.91',reps:'8'},{weight:'0.91',reps:'8'},{weight:'0.91',reps:'7'}]},
+    {date:ds(9),dayKey:'upper',exercise:'Bicep Curl Machine',sets:[{weight:'0.68',reps:'12'},{weight:'0.68',reps:'12'},{weight:'0.68',reps:'11'}]},
+    {date:ds(8),dayKey:'lower',exercise:'Barbell Back Squat',sets:[{weight:'1.36',reps:'7'},{weight:'1.36',reps:'7'},{weight:'1.36',reps:'6'},{weight:'1.36',reps:'6'}]},
+    {date:ds(8),dayKey:'lower',exercise:'Hack Squat Machine',sets:[{weight:'1.13',reps:'10'},{weight:'1.13',reps:'10'},{weight:'1.13',reps:'9'}]},
+    {date:ds(8),dayKey:'lower',exercise:'Hip Thrust (Barbell / Machine)',sets:[{weight:'1.59',reps:'12'},{weight:'1.59',reps:'12'},{weight:'1.59',reps:'11'}]},
+    {date:ds(8),dayKey:'lower',exercise:'Lying Leg Curl Machine',sets:[{weight:'0.77',reps:'12'},{weight:'0.77',reps:'12'},{weight:'0.77',reps:'11'}]},
+    {date:ds(6),dayKey:'push',exercise:'Incline Bench Press (Barbell)',sets:[{weight:'0.91',reps:'10'},{weight:'0.91',reps:'10'},{weight:'1.02',reps:'8'}]},
+    {date:ds(6),dayKey:'push',exercise:'ISO Chest Press Machine',sets:[{weight:'0.77',reps:'12'},{weight:'0.77',reps:'12'},{weight:'0.77',reps:'11'}]},
+    {date:ds(6),dayKey:'push',exercise:'Dumbbell Lateral Raises',sets:[{weight:'0.45',reps:'15'},{weight:'0.45',reps:'15'},{weight:'0.5',reps:'13'},{weight:'0.5',reps:'12'}]},
+    {date:ds(6),dayKey:'push',exercise:'Tricep Rope Pushdown (Cable)',sets:[{weight:'0.59',reps:'12'},{weight:'0.68',reps:'11'},{weight:'0.68',reps:'10'}]},
+    {date:ds(5),dayKey:'pull',exercise:'Pull-Ups',sets:[{weight:'0',reps:'9'},{weight:'0',reps:'8'},{weight:'0',reps:'7'}]},
+    {date:ds(5),dayKey:'pull',exercise:'Lat Pulldown (Cable)',sets:[{weight:'0.77',reps:'12'},{weight:'0.86',reps:'11'},{weight:'0.86',reps:'10'}]},
+    {date:ds(5),dayKey:'pull',exercise:'Barbell Bicep Curl',sets:[{weight:'0.59',reps:'10'},{weight:'0.59',reps:'10'},{weight:'0.68',reps:'8'}]},
+    {date:ds(5),dayKey:'pull',exercise:'Incline Dumbbell Curl',sets:[{weight:'0.36',reps:'12'},{weight:'0.36',reps:'12'},{weight:'0.41',reps:'10'}]},
+    {date:ds(4),dayKey:'legs',exercise:'Pendulum Squat Machine',sets:[{weight:'1.13',reps:'10'},{weight:'1.25',reps:'10'},{weight:'1.25',reps:'9'},{weight:'1.25',reps:'8'}]},
+    {date:ds(4),dayKey:'legs',exercise:'Leg Extension Machine',sets:[{weight:'0.91',reps:'15'},{weight:'0.91',reps:'15'},{weight:'1.02',reps:'12'}]},
+    {date:ds(4),dayKey:'legs',exercise:'Romanian Deadlift (Barbell)',sets:[{weight:'1.36',reps:'10'},{weight:'1.36',reps:'10'},{weight:'1.59',reps:'8'}]},
+    {date:ds(4),dayKey:'legs',exercise:'Seated Leg Curl Machine',sets:[{weight:'0.77',reps:'15'},{weight:'0.86',reps:'14'},{weight:'0.86',reps:'13'}]},
+    {date:ds(2),dayKey:'upper',exercise:'Flat Bench Press (Barbell)',sets:[{weight:'1.25',reps:'7'},{weight:'1.25',reps:'7'},{weight:'1.25',reps:'6'},{weight:'1.25',reps:'5'}]},
+    {date:ds(2),dayKey:'upper',exercise:'Weighted Pull-Ups / Lat Pulldown',sets:[{weight:'1.25',reps:'7'},{weight:'1.25',reps:'7'},{weight:'1.25',reps:'6'},{weight:'1.13',reps:'6'}]},
+    {date:ds(2),dayKey:'upper',exercise:'Barbell Overhead Press',sets:[{weight:'0.91',reps:'8'},{weight:'1.02',reps:'8'},{weight:'1.02',reps:'7'}]},
+    {date:ds(2),dayKey:'upper',exercise:'Bicep Curl Machine',sets:[{weight:'0.68',reps:'12'},{weight:'0.77',reps:'11'},{weight:'0.77',reps:'10'}]},
+    {date:ds(1),dayKey:'lower',exercise:'Barbell Back Squat',sets:[{weight:'1.36',reps:'7'},{weight:'1.5',reps:'7'},{weight:'1.5',reps:'6'},{weight:'1.5',reps:'5'}]},
+    {date:ds(1),dayKey:'lower',exercise:'Hack Squat Machine',sets:[{weight:'1.13',reps:'10'},{weight:'1.25',reps:'10'},{weight:'1.25',reps:'9'}]},
+    {date:ds(1),dayKey:'lower',exercise:'Hip Thrust (Barbell / Machine)',sets:[{weight:'1.59',reps:'12'},{weight:'1.59',reps:'12'},{weight:'1.82',reps:'10'}]},
+    {date:ds(1),dayKey:'lower',exercise:'Lying Leg Curl Machine',sets:[{weight:'0.77',reps:'12'},{weight:'0.86',reps:'12'},{weight:'0.86',reps:'11'}]},
+  ];
+  workoutLogs = testLogs;
+  save('workoutLogs', workoutLogs);
+  save('testDataInjected', true);
 }
 
 window.addEventListener('load',()=>{
   initSettings();
+  injectTestData();
   renderToday();
   setTimeout(checkDailyNotif, 800);
   if(settings.reminder && 'Notification' in window && Notification.permission==='default'){
